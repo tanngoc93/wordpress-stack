@@ -7,10 +7,12 @@ services:
   mariadb-svc:
     image: mariadb:12.1.2-noble
     volumes:
+      - "./db-init:/docker-entrypoint-initdb.d"
       - "/www/data/mysql-data:/var/lib/mysql"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_USER: ${MARIADB_USER:-}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-}
     networks:
       - private-network
     deploy:
@@ -35,8 +37,6 @@ services:
   redis-svc:
     image: redis:7.4.1
     command: redis-server --appendonly yes
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - private-network
     deploy:

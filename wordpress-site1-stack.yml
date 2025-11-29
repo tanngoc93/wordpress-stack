@@ -1,0 +1,64 @@
+networks:
+  public-network:
+    driver: overlay
+    external: true
+
+  private-network:
+    driver: overlay
+    external: true
+
+services:
+  wp_site1:
+    image: wordpress:${WORDPRESS_IMAGE_TAG:-latest}
+    working_dir: /var/www/html
+    environment:
+      # DATABASE SETUP
+      WORDPRESS_DB_HOST:          ${WORDPRESS_DB_HOST}
+      WORDPRESS_DB_USER:          ${MARIADB_USER}
+      WORDPRESS_DB_PASSWORD:      ${MARIADB_PASSWORD}
+      WORDPRESS_DB_NAME:          ${WORDPRESS_APP1_DB_NAME}
+      WORDPRESS_TABLE_PREFIX:     ${WORDPRESS_APP1_TABLE_PREFIX}
+
+      # REDIS SETUP
+      WORDPRESS_REDIS_HOST:       ${WORDPRESS_REDIS_HOST}
+      WORDPRESS_REDIS_PORT:       ${WORDPRESS_REDIS_PORT}
+      WORDPRESS_REDIS_DATABASE:   ${WORDPRESS_APP1_REDIS_DATABASE}
+
+    volumes:
+      - "./wp_appname1/wp-content:/usr/src/wordpress/wp-content"
+      - "./wp_appname1/wp-includes:/usr/src/wordpress/wp-includes"
+      - "./wp_appname1/wp-admin:/usr/src/wordpress/wp-admin"
+      - "./wp_appname1/wp-config/wp-config.php:/usr/src/wordpress/wp-config.php"
+      - "./wp_appname1/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini"
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=public-network"
+
+        # Middleware: redirect
+        - "traefik.http.middlewares.wp-site1-svc-redirect.redirectscheme.scheme=https"
+
+        # HTTP Router
+        - "traefik.http.routers.wp-site1-svc-http.rule=Host(`site1.example.com`) || Host(`www.site1.example.com`)"
+        - "traefik.http.routers.wp-site1-svc-http.entrypoints=web"
+        - "traefik.http.routers.wp-site1-svc-http.middlewares=wp-site1-svc-redirect"
+        - "traefik.http.routers.wp-site1-svc-http.service=wp-site1-svc"
+
+        # HTTPS Router
+        - "traefik.http.routers.wp-site1-svc-https.rule=Host(`site1.example.com`)"
+        - "traefik.http.routers.wp-site1-svc-https.entrypoints=websecured"
+        - "traefik.http.routers.wp-site1-svc-https.tls.certresolver=myhttpchallenge"
+        - "traefik.http.routers.wp-site1-svc-https.service=wp-site1-svc"
+
+        # Service port
+        - "traefik.http.services.wp-site1-svc.loadbalancer.server.port=80"
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    networks:
+      - private-network
+      - public-network

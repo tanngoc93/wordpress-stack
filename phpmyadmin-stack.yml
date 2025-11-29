@@ -1,0 +1,57 @@
+networks:
+  public-network:
+    driver: overlay
+    external: true
+
+  private-network:
+    driver: overlay
+    external: true
+
+services:
+  phpmyadmin-svc:
+    image: phpmyadmin:5.2.1
+    environment:
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 128M
+    networks:
+      - private-network
+      - public-network
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=public-network"
+
+        # Middleware: redirect HTTP -> HTTPS
+        - "traefik.http.middlewares.phpmyadmin-redirect.redirectscheme.scheme=https"
+
+        # HTTP Router
+        - "traefik.http.routers.phpmyadmin-http.rule=Host(`pma.example.com`)"
+        - "traefik.http.routers.phpmyadmin-http.entrypoints=web"
+        - "traefik.http.routers.phpmyadmin-http.middlewares=phpmyadmin-redirect"
+        - "traefik.http.routers.phpmyadmin-http.service=phpmyadmin-svc"
+
+        # HTTPS Router
+        - "traefik.http.routers.phpmyadmin-https.rule=Host(`pma.example.com`)"
+        - "traefik.http.routers.phpmyadmin-https.entrypoints=websecured"
+        - "traefik.http.routers.phpmyadmin-https.tls.certresolver=myhttpchallenge"
+        - "traefik.http.routers.phpmyadmin-https.service=phpmyadmin-svc"
+
+        # Middleware: basicauth
+        # Declaring the user list
+        #
+        # Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
+        # To create user:password pair, it's possible to use this command:
+        # echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+        #
+        # Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+        # - "traefik.http.middlewares.phpmyadmin-svc-auth.basicauth.users=user:password"
+        # - "traefik.http.routers.phpmyadmin-https.middlewares=phpmyadmin-svc-auth"
+
+        # Service port
+        - "traefik.http.services.phpmyadmin-svc.loadbalancer.server.port=80"
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any

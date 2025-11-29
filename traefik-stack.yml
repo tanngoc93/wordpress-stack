@@ -29,16 +29,6 @@ services:
         - "traefik.http.middlewares.traefik-svc-redirect.redirectscheme.scheme=https"
         - "traefik.http.middlewares.traefik-svc-redirect.redirectscheme.permanent=true"
 
-        # Middleware: basicauth
-        # Declaring the user list
-        #
-        # Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
-        # To create user:password pair, it's possible to use this command:
-        # echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
-        #
-        # Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
-        # - "traefik.http.middlewares.traefik-svc-auth.basicauth.users=username:password"
-
         # HTTP Router
         - "traefik.http.routers.traefik-svc-http.rule=Host(`traefik.domain.com`)"
         - "traefik.http.routers.traefik-svc-http.entrypoints=web"
@@ -49,7 +39,18 @@ services:
         - "traefik.http.routers.traefik-svc-https.rule=Host(`traefik.domain.com`)"
         - "traefik.http.routers.traefik-svc-https.entrypoints=websecured"
         - "traefik.http.routers.traefik-svc-https.tls.certresolver=myhttpchallenge"
-        - "traefik.http.routers.traefik-svc-https.middlewares=traefik-svc-auth"
+
+        # Middleware: basicauth
+        # Declaring the user list
+        #
+        # Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
+        # To create user:password pair, it's possible to use this command:
+        # echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+        #
+        # Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+        # - "traefik.http.middlewares.traefik-svc-auth.basicauth.users=user:password"
+        # - "traefik.http.routers.traefik-svc-https.middlewares=traefik-svc-auth"
+
         - "traefik.http.routers.traefik-svc-https.service=api@internal"
 
         # Service port
