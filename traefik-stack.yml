@@ -1,0 +1,61 @@
+networks:
+  public-network:
+    driver: overlay
+    external: true
+
+services:
+  traefik-svc:
+    image: traefik:v3.6.2
+    volumes:
+      - "./traefik/letsencrypt:/letsencrypt"
+      - "./traefik/traefik.toml:/etc/traefik/traefik.toml"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - public-network
+    ports:
+      - "80:80"
+      - "443:443"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=public-network"
+
+        # Middleware: redirectscheme
+        - "traefik.http.middlewares.traefik-svc-redirect.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.traefik-svc-redirect.redirectscheme.permanent=true"
+
+        # Middleware: basicauth
+        # Declaring the user list
+        #
+        # Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
+        # To create user:password pair, it's possible to use this command:
+        # echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+        #
+        # Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+        # - "traefik.http.middlewares.traefik-svc-auth.basicauth.users=username:password"
+
+        # HTTP Router
+        - "traefik.http.routers.traefik-svc-http.rule=Host(`traefik.domain.com`)"
+        - "traefik.http.routers.traefik-svc-http.entrypoints=web"
+        - "traefik.http.routers.traefik-svc-http.middlewares=traefik-svc-redirect"
+        - "traefik.http.routers.traefik-svc-http.service=traefik-svc"
+
+        # HTTPS Router
+        - "traefik.http.routers.traefik-svc-https.rule=Host(`traefik.domain.com`)"
+        - "traefik.http.routers.traefik-svc-https.entrypoints=websecured"
+        - "traefik.http.routers.traefik-svc-https.tls.certresolver=myhttpchallenge"
+        - "traefik.http.routers.traefik-svc-https.middlewares=traefik-svc-auth"
+        - "traefik.http.routers.traefik-svc-https.service=api@internal"
+
+        # Service port
+        - "traefik.http.services.traefik-svc.loadbalancer.server.port=8080"
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any

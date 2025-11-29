@@ -1,0 +1,56 @@
+networks:
+  private-network:
+    driver: overlay
+    external: true
+
+services:
+  mariadb-svc:
+    image: mariadb:12.1.2-noble
+    volumes:
+      - "/www/data/mysql-data:/var/lib/mysql"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    networks:
+      - private-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+
+  redis-svc:
+    image: redis:7.4.1
+    command: redis-server --appendonly yes
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - private-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any

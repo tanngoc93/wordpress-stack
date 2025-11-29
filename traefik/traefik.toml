@@ -1,0 +1,58 @@
+################################################################
+# Global configuration
+################################################################
+[global]
+  checkNewVersion = true
+  sendAnonymousUsage = true
+
+################################################################
+# Entrypoints configuration
+################################################################
+[entryPoints]
+  [entryPoints.metrics]
+    address = ":8082"
+
+  [entryPoints.web]
+    address = ":80"
+
+  [entryPoints.websecured]
+    address = ":443"
+
+[certificatesResolvers.myhttpchallenge.acme]
+  email    = "change-your-email@example.com"
+  storage  = "/letsencrypt/acme.json"
+  [certificatesResolvers.myhttpchallenge.acme.httpChallenge]
+    entryPoint = "web"
+
+################################################################
+# Metrics configuration
+################################################################
+[metrics]
+  [metrics.prometheus]
+    entryPoint = "metrics"
+
+################################################################
+# Traefik logs configuration
+################################################################
+[log]
+  level = "DEBUG"
+
+################################################################
+# Access logs configuration
+################################################################
+[accessLog]
+
+################################################################
+# API and dashboard configuration
+################################################################
+[api]
+  dashboard = true
+
+################################################################
+# Docker configuration backend
+################################################################
+[providers.swarm]
+  httpClientTimeout = 300
+  exposedByDefault = false
+  network = "public-network"
+  endpoint = "unix:///var/run/docker.sock"
