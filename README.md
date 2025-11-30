@@ -57,6 +57,13 @@ sudo nano /etc/environment
 ```
 Add/keep these lines:
 ```
+# Container image tags
+WORDPRESS_IMAGE_TAG="6.8.3-php8.1-fpm"        # WordPress image tag; use wordpress:<tag> (e.g., 6.8.3-php8.1-apache)
+TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<tag>
+MARIADB_IMAGE_TAG="12.1.2-noble"             # MariaDB image tag; use mariadb:<tag> (stack defaults to latest if unset)
+REDIS_IMAGE_TAG="7.4.1"                      # Redis image tag; use redis:<tag> (stack defaults to latest if unset)
+TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<tag>
+
 # Database (shared)
 MARIADB_ROOT_USER="root"
 MARIADB_ROOT_PASSWORD="sample-userpass"       # change to a strong unique password
@@ -67,9 +74,6 @@ WORDPRESS_DB_HOST="mariadb-svc"               # shared DB host (service name in 
 # Redis (shared host/port)
 WORDPRESS_REDIS_HOST="redis-svc"              # shared Redis host (service name in database-stack.yml)
 WORDPRESS_REDIS_PORT=6379
-
-# WordPress docker image
-WORDPRESS_IMAGE_TAG="6.8.3-php8.1-fpm"        # WordPress image tag; use wordpress:<tag> (e.g., 6.8.3-php8.1-apache)
 
 # WordPress site 1
 WORDPRESS_APP1_DB_NAME="wordpress_db_site1"   # change per site
@@ -162,6 +166,10 @@ sudo chmod +x db-init/00-create-wp-user.sh
   docker stack ps wpstack__traefik
   docker service logs -f wpstack__traefik_traefik-svc
   ```
+- Why Traefik? Reverse proxy/load balancer with automatic Let's Encrypt, per-service routing via labels, and a dashboard—ideal for Swarm/label-driven routing. Learn more:  
+  - Image tags/docs: https://hub.docker.com/_/traefik  
+  - Product/docs: https://traefik.io/traefik
+  - Image tag set via `TRAEFIK_IMAGE_TAG` (default `v3.6.2`).
 
 ## 8) phpMyAdmin (optional UI) → create databases
 - Use only after the database stack is running and before deploying WordPress.
@@ -204,7 +212,7 @@ sudo chmod +x db-init/00-create-wp-user.sh
 
 ## 9) WordPress site 1 (edit → deploy → verify)
 - Edit `wordpress-site1-stack.yml`: change hosts `site1.example.com`/`www.site1.example.com` to your domain.
-- (Optional) Change the WordPress image version (see tags at https://hub.docker.com/_/wordpress) by updating `image:` in `wordpress-site1-stack.yml`.
+- WordPress image tag is controlled by `WORDPRESS_IMAGE_TAG` (default example: `6.8.3-php8.1-fpm`; choose any tag from https://hub.docker.com/_/wordpress).
 - Site files `wp_appname1/` (choose the path based on your scenario):
   - Set ownership/permissions (run inside `wp_appname1`, before or after copying files):
     ```bash
@@ -240,7 +248,7 @@ sudo chmod +x db-init/00-create-wp-user.sh
 
 ## 10) WordPress site 2 (edit → deploy → verify)
 - Edit `wordpress-site2-stack.yml`: change hosts `site2.example.com`/`www.site2.example.com` to your domain.
-- (Optional) Change the WordPress image version (see tags at https://hub.docker.com/_/wordpress) by updating `image:` in `wordpress-site2-stack.yml`.
+- WordPress image tag is controlled by `WORDPRESS_IMAGE_TAG` (default example: `6.8.3-php8.1-fpm`; choose any tag from https://hub.docker.com/_/wordpress).
 - Site files `wp_appname2/` (choose the path based on your scenario):
   - Set ownership/permissions (run inside `wp_appname2`, before or after copying files):
     ```bash
@@ -295,8 +303,8 @@ docker service logs -f wpstack__db_redis-svc
 ## 12) Stack file highlights
 - `database-stack.yml`  
   - External overlay network `private-network`.  
-  - `mariadb-svc` mounts `/www/data/mysql-data` → `/var/lib/mysql`; needs `MARIADB_ROOT_PASSWORD`; constrained to manager.  
-  - `redis-svc` uses `redis:7.4.1`; single replica on `private-network`.  
+  - `mariadb-svc` mounts `/www/data/mysql-data` → `/var/lib/mysql`; needs `MARIADB_ROOT_PASSWORD`; constrained to manager. Image tag via `MARIADB_IMAGE_TAG` (example `12.1.2-noble`, stack falls back to `latest` if unset): https://hub.docker.com/_/mariadb  
+  - `redis-svc` single replica on `private-network`. Image tag via `REDIS_IMAGE_TAG` (example `7.4.1`, stack falls back to `latest` if unset): https://hub.docker.com/_/redis  
 - `traefik-stack.yml`  
   - External overlay `public-network`.  
   - Mounts `traefik/traefik.toml` and `traefik/letsencrypt`; exposes 80/443.  
@@ -326,4 +334,3 @@ docker service logs -f wpstack__db_redis-svc
 - `public-network` and `private-network` are `external: true`; they must exist before deploy (see step 3).  
 - `traefik/traefik.toml` still has a placeholder email—must be updated for ACME.  
 - `acme.json` must exist with `chmod 600` (step 4).  
-- `mariadb-svc` mounts `/var/run/docker.sock` but does not use it; consider removing to avoid exposing the Docker socket if not needed.

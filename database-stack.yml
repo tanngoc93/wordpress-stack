@@ -5,7 +5,7 @@ networks:
 
 services:
   mariadb-svc:
-    image: mariadb:12.1.2-noble
+    image: mariadb:${MARIADB_IMAGE_TAG:-latest}
     volumes:
       - "./db-init:/docker-entrypoint-initdb.d"
       - "/www/data/mysql-data:/var/lib/mysql"
@@ -35,7 +35,7 @@ services:
         condition: any
 
   redis-svc:
-    image: redis:7.4.1
+    image: redis:${REDIS_IMAGE_TAG:-latest}
     command: redis-server --appendonly yes
     networks:
       - private-network

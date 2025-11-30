@@ -5,7 +5,7 @@ networks:
 
 services:
   traefik-svc:
-    image: traefik:v3.6.2
+    image: traefik:${TRAEFIK_IMAGE_TAG:-v3.6.2}
     volumes:
       - "./traefik/letsencrypt:/letsencrypt"
       - "./traefik/traefik.toml:/etc/traefik/traefik.toml"
