@@ -1,6 +1,6 @@
 # WordPress + MariaDB + Redis + Traefik on Docker Swarm
 
-This guide explains how to prepare the host, define environment variables, create overlay networks, set permissions, and deploy the `database`, `traefik`, and `wordpress` stacks (with prefix `wpstack__`).
+This guide is a batteries-included recipe for running multiple WordPress sites on Docker Swarm: Swarm gives you multi-node scheduling and self-healing, Traefik handles HTTPS + routing automatically via labels, and the Dockerized MariaDB/Redis/WordPress services keep your app portable and reproducible. You’ll prep the host, wire up env vars, networks, and permissions, then deploy the `database`, `traefik`, and `wordpress` stacks (prefix `wpstack__`).
 
 Quick flow (clickable steps):
 1) [Prepare server & clone repo](#1-prepare-the-server-and-clone-this-repo)  
@@ -22,6 +22,12 @@ Quick flow (clickable steps):
 - Ubuntu 24.x or newer with `sudo` access (other Linux distros are fine—use equivalent package/ufw commands).
 - Docker & Docker Swarm installed. If not installed, see: https://www.docker.com/get-started/
 - Domain pointing to your server IP (for Traefik/WordPress hosts and ACME).
+- Swarm ports opened on all nodes (per [Bret Fisher’s Swarm port guide](https://gist.github.com/BretFisher/7233b7ecf14bc49eb47715bbeb2a2769)):
+  - Managers: TCP 2377 (cluster mgmt), TCP/UDP 7946 (gossip), UDP 4789 (VXLAN data), plus IP protocol 50 if you encrypt overlay.
+  - Workers: TCP/UDP 7946, UDP 4789, plus IP protocol 50 if you encrypt overlay.
+  - UFW example manager: `sudo ufw allow 2377/tcp && sudo ufw allow 7946 && sudo ufw allow 4789/udp`
+  - UFW example worker: `sudo ufw allow 7946 && sudo ufw allow 4789/udp`
+  - Mirror these in cloud Security Groups/VPC firewalls (source = your Swarm node SG to keep it internal).
 - Edit files with `nano <file>` (install if needed: `sudo apt-get install -y nano`); save with `Ctrl+O`, `Enter`, exit with `Ctrl+X`.
 
 ## 1) Prepare the server and clone this repo
