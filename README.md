@@ -2,7 +2,7 @@
 
 This guide is a batteries-included recipe for running multiple WordPress sites on Docker Swarm: Swarm gives you multi-node scheduling and self-healing, Traefik handles HTTPS + routing automatically via labels, and the Dockerized MariaDB/Redis/WordPress services keep your app portable and reproducible. You’ll prep the host, wire up env vars, networks, and permissions, then deploy the `database`, `traefik`, and `wordpress` stacks (prefix `wpstack__`).
 
-Quick flow (clickable steps):
+Quick flow (clickable steps, follow in order):
 1) [Prepare server & clone repo](#1-prepare-the-server-and-clone-this-repo)  
 2) [Configure `/etc/environment`](#2-configure-etcenvironment)  
 3) [Init Swarm](#3-initialize-the-swarm-and-save-tokens)  
@@ -27,13 +27,39 @@ Quick flow (clickable steps):
 - Ubuntu 24.x or newer with `sudo` access (other Linux distros are fine—use equivalent package/ufw commands).
 - Docker & Docker Swarm installed. If not installed, see: https://www.docker.com/get-started/
 - Domain pointing to your server IP (for Traefik/WordPress hosts and ACME).
-- Swarm ports opened on all nodes (per [Bret Fisher’s Swarm port guide](https://gist.github.com/BretFisher/7233b7ecf14bc49eb47715bbeb2a2769)):
-  - Managers: TCP 2377 (cluster mgmt), TCP/UDP 7946 (gossip), UDP 4789 (VXLAN data), plus IP protocol 50 if you encrypt overlay.
-  - Workers: TCP/UDP 7946, UDP 4789, plus IP protocol 50 if you encrypt overlay.
-  - UFW example manager: `sudo ufw allow 2377/tcp && sudo ufw allow 7946 && sudo ufw allow 4789/udp`
-  - UFW example worker: `sudo ufw allow 7946 && sudo ufw allow 4789/udp`
-  - Mirror these in cloud Security Groups/VPC firewalls (source = your Swarm node SG to keep it internal).
+- Firewall: open ports BOTH in your provider’s dashboard (Security Group/VPC rules) **and** on each node with `ufw` (or your distro firewall). Copy-paste the commands below on every server after you’ve matched the same ports in the provider UI. Make sure SSH (22/tcp) is already allowed by your provider or an existing firewall rule before you enable ufw, so you don’t lock yourself out.
 - Edit files with `nano <file>` (install if needed: `sudo apt-get install -y nano`); save with `Ctrl+O`, `Enter`, exit with `Ctrl+X`.
+
+## Firewall checklist (cloud dashboard + on-server commands)
+1) In provider dashboard (Security Group/VPC/firewall UI), allow inbound to each node:
+   - 80/tcp and 443/tcp from 0.0.0.0/0 (public web).
+   - Swarm traffic **restricted to your Swarm nodes only** (source = the private IP ranges of your cluster):
+     - Manager: 2377/tcp (Swarm control plane), 7946/tcp+udp (gossip), 4789/udp (VXLAN data); add IP protocol 50 if you enable encrypted overlay.
+     - Worker: 7946/tcp+udp, 4789/udp; add IP protocol 50 if you enable encrypted overlay.
+   - SSH 22/tcp: keep it open from your admin IP/range through the provider firewall so you can connect, but we don’t re-add it in the ufw commands below.
+
+2) On each node, open the same ports locally (UFW examples below). Run on managers:
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 2377/tcp      # Swarm manager control-plane
+sudo ufw allow 7946/tcp      # Swarm gossip
+sudo ufw allow 7946/udp      # Swarm gossip
+sudo ufw allow 4789/udp      # Swarm VXLAN data plane
+sudo ufw enable
+sudo ufw status
+```
+
+Run on workers (no 2377 needed; open 80/443 only if you route public traffic directly to workers):
+```bash
+sudo ufw allow 7946/tcp
+sudo ufw allow 7946/udp
+sudo ufw allow 4789/udp
+sudo ufw enable
+sudo ufw status
+```
+
+If you use another firewall (firewalld/iptables/nftables), mirror the same ports. Always keep provider UI rules and on-host firewall rules in sync; if one side blocks, Swarm join/overlay or HTTP/HTTPS will fail.
 
 ## 1) Prepare the server and clone this repo
 - Tested on Ubuntu 24.x or newer; use equivalent commands on your Linux distro.
@@ -52,14 +78,13 @@ Quick flow (clickable steps):
 - DNS & firewall prerequisites:  
   - Point your domains to the server’s public IP (A/AAAA records) before running Traefik/ACME.  
     - Example (Cloudflare): add an `A` record for `domain.com` and another `A` for `www` pointing to your server IP. Turn off proxy (orange cloud) if you want ACME HTTP challenge to reach Traefik directly.  
-  - Allow inbound ports 80/443 (and 22 for SSH). Example on Ubuntu UFW:  
+  - Allow inbound ports 80/443. Example on Ubuntu UFW (if not already enabled):  
     ```bash
-    sudo ufw allow 22
     sudo ufw allow 80
     sudo ufw allow 443
     sudo ufw enable
     ```
-  - If your cloud/server provider also has a dashboard firewall (Security Group/VPC rules), open 80 and 443 there too. If unsure, check their docs or contact support to confirm HTTP/HTTPS are allowed to this server.
+  - If your cloud/server provider also has a dashboard firewall (Security Group/VPC rules), open 80 and 443 there too. If unsure, check their docs or contact support to confirm HTTP/HTTPS are allowed to this server. Keep SSH (22) open in the provider firewall so you can connect; do not add it in ufw if your SSH access is already working.
 
 ## 2) Configure `/etc/environment`
 Use nano (or your editor) so the variables are loaded for every shell login.
@@ -73,7 +98,6 @@ WORDPRESS_IMAGE_TAG="6.8.3-php8.1-fpm"       # WordPress image tag; use wordpres
 TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<tag>
 MARIADB_IMAGE_TAG="12.1.2-noble"             # MariaDB image tag; use mariadb:<tag> (stack defaults to latest if unset)
 REDIS_IMAGE_TAG="7.4.1"                      # Redis image tag; use redis:<tag> (stack defaults to latest if unset)
-TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<tag>
 
 # Database (shared)
 MARIADB_ROOT_USER="root"
