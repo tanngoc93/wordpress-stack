@@ -64,7 +64,7 @@ sudo nano /etc/environment
 Add/keep these lines:
 ```
 # Container image tags
-WORDPRESS_IMAGE_TAG="6.8.3-php8.1-fpm"        # WordPress image tag; use wordpress:<tag> (e.g., 6.8.3-php8.1-apache)
+WORDPRESS_IMAGE_TAG="6.8.3-php8.1-fpm"       # WordPress image tag; use wordpress:<tag> (e.g., 6.8.3-php8.1-apache)
 TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<tag>
 MARIADB_IMAGE_TAG="12.1.2-noble"             # MariaDB image tag; use mariadb:<tag> (stack defaults to latest if unset)
 REDIS_IMAGE_TAG="7.4.1"                      # Redis image tag; use redis:<tag> (stack defaults to latest if unset)
@@ -74,7 +74,7 @@ TRAEFIK_IMAGE_TAG="v3.6.2"                   # Traefik image tag; use traefik:<t
 MARIADB_ROOT_USER="root"
 MARIADB_ROOT_PASSWORD="sample-userpass"       # change to a strong unique password
 MARIADB_USER="wordpress"                      # required (used by WordPress)
-MARIADB_PASSWORD="sample-userpass"            # required (used by WordPress)
+MARIADB_PASSWORD="sample-userpass"            # change to a strong unique password
 WORDPRESS_DB_HOST="mariadb-svc"               # shared DB host (service name in database-stack.yml)
 
 # Redis (shared host/port)
