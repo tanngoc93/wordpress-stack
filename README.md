@@ -18,6 +18,11 @@ Quick flow (clickable steps):
 13) [Ops notes](#13-ops-notes)  
 14) [Config observations](#14-config-observations)
 
+## Swarm roles: managers vs workers
+- Managers run the control plane (Raft state, scheduling, cluster changes). Keep an odd number (3 or 5) for quorum and store the manager join token securely. Port 2377/tcp must be reachable from joining nodes.
+- Workers only run tasks; they don’t vote in Raft. Add more workers to scale services horizontally using the worker join token.
+- Managers can run workloads too; if you want them control-plane-only, drain them: `docker node update --availability drain <manager-name>` and deploy your stacks to workers.
+
 ## Prerequisites
 - Ubuntu 24.x or newer with `sudo` access (other Linux distros are fine—use equivalent package/ufw commands).
 - Docker & Docker Swarm installed. If not installed, see: https://www.docker.com/get-started/
