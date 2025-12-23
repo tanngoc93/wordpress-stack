@@ -25,10 +25,8 @@ services:
       WORDPRESS_REDIS_DATABASE:   ${WORDPRESS_APP2_REDIS_DATABASE}
 
     volumes:
-      - "./wp_appname2/wp-content:/usr/src/wordpress/wp-content"
-      - "./wp_appname2/wp-includes:/usr/src/wordpress/wp-includes"
-      - "./wp_appname2/wp-admin:/usr/src/wordpress/wp-admin"
-      - "./wp_appname2/wp-config/wp-config.php:/usr/src/wordpress/wp-config.php"
+      - "./wp_appname2:/var/www/html"
+      - "./wp_appname2-config/wp-config.php:/var/www/html/wp-config.php"
       - "./wp_appname2/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini"
     deploy:
       mode: replicated

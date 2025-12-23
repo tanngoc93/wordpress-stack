@@ -248,25 +248,17 @@ sudo chmod +x db-init/00-create-wp-user.sh
 ## 9) WordPress site 1 (edit → deploy → verify)
 - Edit `wordpress-site1-stack.yml`: change hosts `site1.example.com`/`www.site1.example.com` to your domain.
 - WordPress image tag is controlled by `WORDPRESS_IMAGE_TAG` (default example: `6.8.3-php8.1-fpm`; choose any tag from https://hub.docker.com/_/wordpress).
-- Site files `wp_appname1/` (choose the path based on your scenario):
-  - Set ownership/permissions (run inside `wp_appname1`, before or after copying files):
-    ```bash
-    cd /path/to/wordpress-stack/wp_appname1
-    sudo chown www-data:www-data -R *
-    sudo find . -type d -exec chmod 755 {} \;
-    sudo find . -type f -exec chmod 644 {} \;
-    cd ..
-    ```
-  - Migrating an existing site: copy your old `wp-content`, `wp-includes`, and `wp-admin` into `wp_appname1/` (folders are pre-created).
-  - Fresh install: populate `wp_appname1/wp-admin`, `wp_appname1/wp-includes`, and `wp_appname1/wp-content` from a fresh WordPress download, then add your theme/plugin files:
+- Site files `wp_appname1/` (repo only ships `uploads.ini`; add WordPress core yourself). `wp-config.php` lives in `wp_appname1-config/wp-config.php` and mounts separately:
+  - Migrating an existing site: copy your whole WordPress root (including `wp-admin`, `wp-includes`, `wp-content`, `index.php`, etc.) into `wp_appname1/`. Keep your `wp-config.php` at `wp_appname1-config/wp-config.php` so it mounts into `/var/www/html/wp-config.php` (use env-aware values if you want it dynamic).
+  - Fresh install: download WordPress and copy everything into `wp_appname1/`, then add your theme/plugin files. Put your env-aware `wp-config.php` at `wp_appname1-config/wp-config.php` (you can start from the sample in this repo and inject env vars); it will mount to `/var/www/html/wp-config.php` in the container:
     ```bash
     curl -L https://wordpress.org/latest.tar.gz -o /tmp/wordpress.tar.gz
     tar -xzf /tmp/wordpress.tar.gz -C /tmp
-    sudo cp -r /tmp/wordpress/wp-admin /tmp/wordpress/wp-includes /tmp/wordpress/wp-content wp_appname1/
+    sudo cp -r /tmp/wordpress/* wp_appname1/
     rm -rf /tmp/wordpress /tmp/wordpress.tar.gz
     ```
-  - Edit salts in `wp_appname1/wp-config/wp-config.php`: open the file (`sudo nano wp_appname1/wp-config/wp-config.php`), find the block from `define('AUTH_KEY'` through `define('NONCE_SALT'`, and replace all eight lines with new ones from https://api.wordpress.org/secret-key/1.1/salt/ (copy-paste the whole block).
-  - Defaults use DB name `wordpress_site1` and prefix `wp1_`; adjust if needed.
+  - Edit salts in `wp_appname1-config/wp-config.php`: open the file (`sudo nano wp_appname1-config/wp-config.php`), find the block from `define('AUTH_KEY'` through `define('NONCE_SALT'`, and replace all eight lines with new ones from https://api.wordpress.org/secret-key/1.1/salt/ (copy-paste the whole block).
+  - Defaults use DB name `wordpress_site1` and prefix `wp1_`; adjust if needed. Set ownership/permissions after you copy files (typical: dirs 755, files 644, owner www-data).
 - WordPress DB user/password in this stack come from `MARIADB_USER` / `MARIADB_PASSWORD` (non-root).
 - Create DB (if not yet): use phpMyAdmin or MySQL to create the DB name set in `/etc/environment` under `WORDPRESS_APP1_DB_NAME` (default example: `wordpress_db_site1`).
 - Deploy:
@@ -284,25 +276,17 @@ sudo chmod +x db-init/00-create-wp-user.sh
 ## 10) WordPress site 2 (edit → deploy → verify)
 - Edit `wordpress-site2-stack.yml`: change hosts `site2.example.com`/`www.site2.example.com` to your domain.
 - WordPress image tag is controlled by `WORDPRESS_IMAGE_TAG` (default example: `6.8.3-php8.1-fpm`; choose any tag from https://hub.docker.com/_/wordpress).
-- Site files `wp_appname2/` (choose the path based on your scenario):
-  - Set ownership/permissions (run inside `wp_appname2`, before or after copying files):
-    ```bash
-    cd /path/to/wordpress-stack/wp_appname2
-    sudo chown www-data:www-data -R *
-    sudo find . -type d -exec chmod 755 {} \;
-    sudo find . -type f -exec chmod 644 {} \;
-    cd ..
-    ```
-  - Migrating an existing site: copy your old `wp-content`, `wp-includes`, and `wp-admin` into `wp_appname2/` (folders are pre-created).
-  - Fresh install: populate `wp_appname2/wp-admin`, `wp_appname2/wp-includes`, and `wp_appname2/wp-content` from a fresh WordPress download, then add your theme/plugin files:
+- Site files `wp_appname2/` (repo only ships `uploads.ini`; add WordPress core yourself). `wp-config.php` lives in `wp_appname2-config/wp-config.php` and mounts separately:
+  - Migrating an existing site: copy your whole WordPress root (including `wp-admin`, `wp-includes`, `wp-content`, `index.php`, etc.) into `wp_appname2/`. Keep your `wp-config.php` at `wp_appname2-config/wp-config.php` so it mounts into `/var/www/html/wp-config.php` (use env-aware values if you want it dynamic).
+  - Fresh install: download WordPress and copy everything into `wp_appname2/`, then add your theme/plugin files. Put your env-aware `wp-config.php` at `wp_appname2-config/wp-config.php` (you can start from the sample in this repo and inject env vars); it will mount to `/var/www/html/wp-config.php` in the container:
     ```bash
     curl -L https://wordpress.org/latest.tar.gz -o /tmp/wordpress.tar.gz
     tar -xzf /tmp/wordpress.tar.gz -C /tmp
-    sudo cp -r /tmp/wordpress/wp-admin /tmp/wordpress/wp-includes /tmp/wordpress/wp-content wp_appname2/
+    sudo cp -r /tmp/wordpress/* wp_appname2/
     rm -rf /tmp/wordpress /tmp/wordpress.tar.gz
     ```
-  - Edit salts in `wp_appname2/wp-config/wp-config.php`: open the file (`sudo nano wp_appname2/wp-config/wp-config.php`), find the block from `define('AUTH_KEY'` through `define('NONCE_SALT'`, and replace all eight lines with new ones from https://api.wordpress.org/secret-key/1.1/salt/ (copy-paste the whole block).
-  - Defaults use DB name `wordpress_site2`, prefix `wp2_`, Redis DB index 1; adjust if needed.
+  - Edit salts in `wp_appname2-config/wp-config.php`: open the file (`sudo nano wp_appname2-config/wp-config.php`), find the block from `define('AUTH_KEY'` through `define('NONCE_SALT'`, and replace all eight lines with new ones from https://api.wordpress.org/secret-key/1.1/salt/ (copy-paste the whole block).
+  - Defaults use DB name `wordpress_site2`, prefix `wp2_`, Redis DB index 1; adjust if needed. Set ownership/permissions after you copy files (typical: dirs 755, files 644, owner www-data).
 - WordPress DB user/password in this stack come from `MARIADB_USER` / `MARIADB_PASSWORD` (non-root).
 - Create DB (if not yet): use phpMyAdmin or MySQL to create the DB name set in `/etc/environment` under `WORDPRESS_APP2_DB_NAME` (default example: `wordpress_db_site2`).
 - Deploy:
@@ -346,12 +330,12 @@ docker service logs -f wpstack__db_redis-svc
   - Labels configure routers for `traefik.domain.com` with HTTP→HTTPS redirect and optional basicauth (add user hash to `traefik.http.middlewares.traefik-svc-auth.basicauth.users`).  
 - `wordpress-site1-stack.yml`  
   - Joins both `public-network` and `private-network`.  
-  - Service `wp_site1` mounts `./wp_appname1/...`.  
+  - Service `wp_site1` mounts `./wp_appname1:/var/www/html`, `./wp_appname1-config/wp-config.php:/var/www/html/wp-config.php`, and `uploads.ini`.  
   - Labels route `site1.example.com` to the service with cert resolver `myhttpchallenge`.  
   - Requires env vars: shared DB host (`WORDPRESS_DB_HOST`), DB user/pass (`MARIADB_USER`/`MARIADB_PASSWORD`), site1 DB name/prefix (`WORDPRESS_APP1_DB_*`), shared Redis host/port (`WORDPRESS_REDIS_HOST`, `WORDPRESS_REDIS_PORT`), and site1 Redis DB index (`WORDPRESS_APP1_REDIS_DATABASE`). Salts set in `wp_appname1/wp-config/wp-config.php`.
 - `wordpress-site2-stack.yml`  
   - Joins both `public-network` and `private-network`.  
-  - Service `wp_site2` mounts `./wp_appname2/...`.  
+  - Service `wp_site2` mounts `./wp_appname2:/var/www/html`, `./wp_appname2-config/wp-config.php:/var/www/html/wp-config.php`, and `uploads.ini`.  
   - Labels route `site2.example.com` to the service with cert resolver `myhttpchallenge`.  
   - Requires env vars: shared DB host (`WORDPRESS_DB_HOST`), DB user/pass (`MARIADB_USER`/`MARIADB_PASSWORD`), site2 DB name/prefix (`WORDPRESS_APP2_DB_*`), shared Redis host/port (`WORDPRESS_REDIS_HOST`, `WORDPRESS_REDIS_PORT`), and site2 Redis DB index (`WORDPRESS_APP2_REDIS_DATABASE`). Salts set in `wp_appname2/wp-config/wp-config.php`.
 - `phpmyadmin-stack.yml`  
